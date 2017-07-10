@@ -140,11 +140,11 @@ function Recipe(name) {
 		pausePhases.forEach(function(phase) {
 			this.pauseSequence.addPhase(phase);
 		}.bind(this));
-		var logMessage = "Pauses:\n----------------------------\n";
-		pausePhases.forEach(function(pause) {
-			logMessage += "   Pause start = "+pause.start+", end = "+pause.milliliter+" \n";
-		});
-		console.log(logMessage);
+		// var logMessage = "Pauses:\n----------------------------\n";
+		// pausePhases.forEach(function(pause) {
+		// 	logMessage += "   Pause start = "+pause.start+", end = "+pause.milliliter+" \n";
+		// });
+		// console.log(logMessage);
 	}
 
 }
@@ -282,7 +282,6 @@ function RecipeConfigurator(recipe, id) {
 		htmlContent.html("");
 
 		this.recipe.pauseSequence.phases.forEach(function(phase) {
-			console.log("Pause start = "+phase.start+", ml = "+phase.milliliter);
 			var htmlPhase = $("#recipe-pause-phase").clone();
 			htmlPhase.attr("id", phase.id);
 			htmlContent.append(htmlPhase);
@@ -396,7 +395,7 @@ function RecipeConfigurator(recipe, id) {
 				} else {
 					dragMode = 'center';
 				}
-				console.log("x = "+relX+", y = "+relY+", dragMode: "+dragMode);
+				// console.log("x = "+relX+", y = "+relY+", dragMode: "+dragMode);
 				// $(this).removeClass('over');
 			},
 			stop: function(event, ui) {
@@ -407,7 +406,7 @@ function RecipeConfigurator(recipe, id) {
 				dragObject = null;
 			},
 			drag: function(event, ui) {
-				console.log("drag mode = "+dragMode);
+				// console.log("drag mode = "+dragMode);
 				var remainingInterval = getRemainingInterval(this);
 				var draggingInterval = getDraggingInterval(this);
 				var dX = event.clientX - draggingX;
