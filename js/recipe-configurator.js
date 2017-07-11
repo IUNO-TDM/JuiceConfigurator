@@ -31,8 +31,10 @@ function recipeGetNewId() {
 	return "recipe-id-" + currentId;
 }
 
-function Ingredient(name) {
+function Ingredient(id, name, description) {
+	this.id = id;
 	this.name = name;
+	this.description = description;
 }
 
 function Phase(start, milliliter, throughput) {
@@ -151,6 +153,17 @@ function Recipe(name) {
 
 var dialogConfigurator = null;
 var selectedPhase = null;
+var ingredients = [];
+
+function getIngredientById(id) {
+	var ingredient = null;
+	ingredients.forEach(function(element) {
+		if (element.id == id) {
+			ingredient = element;
+		}
+	})
+	return ingredient;
+}
 
 function splitPhaseHelper() {
 	dialogConfigurator.splitPhase();
@@ -165,6 +178,40 @@ function addIngredient() {
 }
 
 function openAddIngredientDialog() {
+	$("#dialog-add-ingredient-table").show();
+	$("#dialog-add-ingredient-amount").hide();
+	dialogAddIngredient = $( "#dialog-add-ingredient" ).dialog({
+		autoOpen: false,
+		resizable: false,
+		height: "auto",
+		width: 400,
+		modal: true,
+		buttons: {
+			// "Hinzufügen": addIngredient,
+			"Abbrechen": function() {
+			$( this ).dialog( "close" );
+			}
+		}
+	});
+	$( "#dialog-add-ingredient" ).dialog( "open" );
+}
+
+function openAddIngredientAmountDialog(ingredientId) {
+	var ingredient = getIngredientById(ingredientId);
+	$("#dialog-add-ingredient input[name=ingredientId]").val(ingredientId);
+	$("#dialog-add-ingredient-table").hide();
+	$("#dialog-add-ingredient-amount").show();
+	$("#dialog-add-ingredient-amount .ingredient").html("Zutat: <a href='javascript:openAddIngredientDialog()'>"+ingredient.name+"</a>");
+	$( "#dialog-add-ingredient" ).dialog(
+		'option', {
+		buttons: {
+			"Hinzufügen": addIngredient,
+			"Abbrechen": function() {
+				$( this ).dialog( "close" );
+			}
+		}
+		}
+	);
 	$( "#dialog-add-ingredient" ).dialog( "open" );
 }
 
@@ -201,20 +248,19 @@ function RecipeConfigurator(recipe, id) {
 		}
 	});
 
-	dialogAddIngredient = $( "#dialog-add-ingredient" ).dialog({
-		autoOpen: false,
-		resizable: false,
-		height: "auto",
-		width: 400,
-		modal: true,
-		buttons: {
-			"Hinzufügen": addIngredient,
-			"Abbrechen": function() {
-			$( this ).dialog( "close" );
-			}
-		}
-	});		
-
+	// dialogAddIngredient = $( "#dialog-add-ingredient" ).dialog({
+	// 	autoOpen: false,
+	// 	resizable: false,
+	// 	height: "auto",
+	// 	width: 400,
+	// 	modal: true,
+	// 	buttons: {
+	// 		"Hinzufügen": addIngredient,
+	// 		"Abbrechen": function() {
+	// 		$( this ).dialog( "close" );
+	// 		}
+	// 	}
+	// });
 
 	this.render = function() {
 		var htmlRecipe = $("#"+id);
@@ -515,8 +561,10 @@ function RecipeConfigurator(recipe, id) {
 
 		this.addIngredient = function() {
 			var ml = parseInt(addml.value);
+			var ingredientId = $("#dialog-add-ingredient input[name=ingredientId]").val();
+			var ingredient = getIngredientById(ingredientId);
 			if (ml > 0) {
-				var sequence = new Sequence(new Ingredient("Most", 1));
+				var sequence = new Sequence(ingredient);
 				sequence.addPhase(new Phase(0, ml, 100));
 				this.recipe.addSequence(sequence);
 				this.render();
