@@ -135,7 +135,7 @@ function Recipe() {
 	this.description = '';
 	this.shortDescription = '';
 	this.program = new Program();
-	this.licenseFee = 0;
+	this.licenseFee = -1;
 
 	this.toJSON = function() {
 		var json = {};
@@ -175,6 +175,13 @@ function Program() {
 
 	this.addSequence = function(sequence) {
 		this.sequences.push(sequence);
+		this.updatePauses();
+	}
+
+	this.removeSequence = function(sequence) {
+		this.sequences = this.sequences.filter(function(s) {
+			return s.ingredientId != sequence.ingredientId;
+		});
 		this.updatePauses();
 	}
 
@@ -280,6 +287,7 @@ function openAddIngredientDialog(programConfigurator) {
 	$( "#dialog-add-ingredient" )
 		.data('configurator', programConfigurator)
 		.dialog( "open" );
+	ingredientSearch();
 }
 
 function openAddIngredientAmountDialog(ingredientId) {
@@ -288,10 +296,13 @@ function openAddIngredientAmountDialog(ingredientId) {
 	$("#dialog-add-ingredient input[name=ingredientId]").val(ingredientId);
 	$("#dialog-add-ingredient-table").hide();
 	$("#dialog-add-ingredient-amount").show();
-	$("#dialog-add-ingredient-amount .ingredient").html("Zutat: <a href='javascript:openAddIngredientDialog()'>"+ingredient.name+"</a>");
+	$("#dialog-add-ingredient-amount .ingredient").html("Zutat: "+ingredient.name);
 	$( "#dialog-add-ingredient" ).dialog(
 		'option', {
 			buttons: {
+				"Zutat ändern": function() {
+					openAddIngredientDialog();
+				},
 				"Hinzufügen": function() {
 					var configurator = $(this).data('configurator');
 					var ingredientId = $("#dialog-add-ingredient input[name=ingredientId]").val();
@@ -453,6 +464,7 @@ function ProgramConfigurator(program, id) {
 			var htmlAmountHref = htmlSequence.find('.change-amount');
 			htmlAmountHref.click(function(event) {
 				event.preventDefault();
+				$( "#changeml").val(sequence.getTotal());
 				$( "#dialog-change-amount" )
 					.data('configurator', configurator)
 					.data('sequence', sequence)
@@ -572,6 +584,15 @@ function ProgramConfigurator(program, id) {
 		}
 	}
 
+	this.removeSequence = function(sequence) {
+		this.program.removeSequence(sequence);
+		this.render();
+	}
+
+	this.deleteSequence = function(sequence) {
+		this.program.removeIngredient
+	}
+
 	this.deletePhase = function(phase) {
 		console.log("Should delete phase id "+phase.id);
 		var sequence = phase.sequence;
@@ -683,6 +704,12 @@ $(function() {
 		width: 400,
 		modal: true,
 		buttons: {
+			"Zutat entfernen": function() {
+				var configurator = $(this).data('configurator');
+				var sequence = $(this).data('sequence');
+				configurator.removeSequence(sequence);
+				$(this).dialog('close');
+			},
 			"Menge ändern": function() {
 				var configurator = $(this).data('configurator');
 				var sequence = $(this).data('sequence');
@@ -702,18 +729,24 @@ $(function() {
 		height: "auto",
 		width: 400,
 		modal: true,
+		open: function() {
+			$('.ui-widget-overlay').addClass('custom-overlay');
+		},
+		close: function() {
+			$('.ui-widget-overlay').removeClass('custom-overlay');
+		},
 		buttons: {
-			"Abspalten": function() {
+			"Verschmelzen": function() {
+				var configurator = $(this).data('configurator');
+				var phase = $(this).data('phase');
+				configurator.deletePhase(phase)
+				$(this).dialog('close');
+			},
+			"Phase teilen": function() {
 				var configurator = $(this).data('configurator');
 				var phase = $(this).data('phase');
 				var amount = parseInt(splitml.value);
 				configurator.splitPhase(phase, amount)
-				$(this).dialog('close');
-			},
-			"Löschen": function() {
-				var configurator = $(this).data('configurator');
-				var phase = $(this).data('phase');
-				configurator.deletePhase(phase)
 				$(this).dialog('close');
 			},
 			"Abbrechen": function() {
