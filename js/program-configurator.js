@@ -300,15 +300,15 @@ function openAddIngredientAmountDialog(ingredientId) {
 	$( "#dialog-add-ingredient" ).dialog(
 		'option', {
 			buttons: {
+                "Hinzufügen": function() {
+                    var configurator = $(this).data('configurator');
+                    var ingredientId = $("#dialog-add-ingredient input[name=ingredientId]").val();
+                    var amount = parseInt(addml.value);
+                    configurator.addIngredient(ingredientId, amount);
+                    $(this).dialog('close');
+                },
 				"Zutat ändern": function() {
 					openAddIngredientDialog();
-				},
-				"Hinzufügen": function() {
-					var configurator = $(this).data('configurator');
-					var ingredientId = $("#dialog-add-ingredient input[name=ingredientId]").val();
-					var amount = parseInt(addml.value);
-					configurator.addIngredient(ingredientId, amount);
-					$(this).dialog('close');
 				},
 				"Abbrechen": function() {
 					$(this).dialog('close');
