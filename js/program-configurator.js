@@ -380,13 +380,13 @@ function ProgramConfigurator(program, id) {
 							dragMode = 'center';
 						}
 					},
-					stop: function(event, ui) {
-						// $(this).addClass('over');
-						if (!$(event.target).parents(this).size()) {
-							$(this).find('.phase-controls').hide();
-						}
-						// configurator.dragObject = null;
-					},
+					// stop: function(event, ui) {
+					// 	// $(this).addClass('over');
+					// 	if (!$(event.target).parents(this).size()) {
+					// 		$(this).find('.phase-controls').hide();
+					// 	}
+					// 	// configurator.dragObject = null;
+					// },
 					drag: function(event, ui) {
 						var remainingInterval = getRemainingInterval(this);
 						var draggingInterval = getDraggingInterval(this);
@@ -447,11 +447,11 @@ function ProgramConfigurator(program, id) {
 						.dialog('open');
 				});
 
-				htmlPhase.hover(function() {
-					$(this).find('.phase-controls').show();
-				}, function() {
-					$(this).find('.phase-controls').hide();
-				});
+				// htmlPhase.hover(function() {
+				// 	$(this).find('.phase-controls').show();
+				// }, function() {
+				// 	$(this).find('.phase-controls').hide();
+				// });
 
 				htmlContent.append(htmlPhase);
 			});

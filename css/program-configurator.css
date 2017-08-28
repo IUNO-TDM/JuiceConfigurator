@@ -38,6 +38,7 @@
     /*background-color: #67f;*/
     background-color: #AAC253;
     /*background-color: #f70;*/
+    padding-right: 25px;
     user-select: false;
 }
 
@@ -72,6 +73,14 @@
     border-right: 1px solid #999;
 }
 
+.phase-throughput-caret {
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 7.5px 0 7.5px 13.0px;
+    border-color: transparent transparent transparent #007bff;
+}
+
 .phase-controls {
     display: table;
     width: 100%;
@@ -99,7 +108,7 @@
 
 .phase-controls-right {
     display: table-cell;
-    width: 15px;
+    width: 25px;
     height: 100%;
     /*background-color: transparent;*/
     border: 1px dashed #000;
