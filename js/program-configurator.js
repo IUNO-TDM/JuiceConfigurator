@@ -345,7 +345,7 @@ function ProgramConfigurator(program, id) {
 			var htmlSequence = $("#program-sequence").clone();
 			htmlSequence.attr("id", sequence.id);
 			htmlProgram.append(htmlSequence);
-			var htmlLabel = htmlSequence.find('.label');
+			var htmlLabel = htmlSequence.find('.ingredient-label');
 			var ingredient = getIngredientById(sequence.ingredientId)
 			htmlLabel.html(ingredient.name)
 
@@ -374,7 +374,7 @@ function ProgramConfigurator(program, id) {
 						draggingThroughputStart = draggingPhase.throughput;
 						if (relX <= 15) {
 							dragMode = 'left';
-						} else if (relX >= $(this).width() - 15) {
+						} else if (relX >= $(this).width() - 30) {
 							dragMode = 'right';
 						} else {
 							dragMode = 'center';
@@ -475,7 +475,7 @@ function ProgramConfigurator(program, id) {
 		var htmlSequence = $("#program-pause").clone();
 		htmlSequence.attr("id", this.program.pauseSequence.id);
 		htmlProgram.append(htmlSequence);
-		var htmlLabel = htmlSequence.find('.label');
+		var htmlLabel = htmlSequence.find('.ingredient-label');
 		htmlLabel.html("Pausen")
 
 		var footer = $("#program-footer").clone();
@@ -526,13 +526,13 @@ function ProgramConfigurator(program, id) {
 			htmlContent.append(htmlPhase);
 			updatePhaseHtmlElement(phase);
 
-			var label = $("#"+phase.id+" .phase-label")[0];
+			var label = $("#"+phase.id+" .phase-content-label")[0];
 			var s = convertMilliliterToMilliseconds(phase.milliliter) / 1000;
 			var text = s + " s";
 			label.innerHTML = text;
 		});
 
-		var htmlTotal = htmlSequence.find('.program-row-total');
+		var htmlTotal = htmlSequence.find('.program-row-total .label');
 		var total = this.program.pauseSequence.getTotal();
 		var seconds = convertMilliliterToMilliseconds(total) / 1000;
 		htmlTotal.html(seconds + " s");
@@ -628,16 +628,17 @@ function ProgramConfigurator(program, id) {
 		htmlElement.style.left = start;
 		htmlElement.style.width = width;
 
-		var mlBox = $("#"+phase.id+" .phase-ml")[0];
+		var mlBox = $("#"+phase.id+" .phase-content-throughput")[0];
 		if (mlBox != null) {
 			mlBox.style.height = height;
 			mlBox.style.marginTop = marginTop;
 		}
 
-		var label = $("#"+phase.id+" .phase-label")[0];
-		label.style.width = width;
-		label.style.height = defaultPhaseHeight+"px";
-		label.style.lineHeight = defaultPhaseHeight+"px";
+		var label = $("#"+phase.id+" .phase-content-label")[0];
+		// label.style.marginTop = marginTop;
+		// label.style.width = width;
+		// label.style.height = defaultPhaseHeight+"px";
+		// label.style.lineHeight = defaultPhaseHeight+"px";
 		var text = phase.milliliter+" ml";
 		if (phase.throughput != 100) {
 			text = phase.milliliter+" ml ("+throughput+" %)";

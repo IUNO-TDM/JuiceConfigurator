@@ -1,53 +1,74 @@
+.valign {
+    position: relative;
+    top: 50%;
+    transform: translateY(-50%);
+    /* vendor prefixes omitted due to brevity */
+}
+
 .pause-phase {
-    height: 37px;
     position: absolute;
+    height: 37px;
     margin-top: 1px;
-    background-color: #aaa;
-    color: black;
+	vertical-align: middle;
     user-select: false;
+
+    background-color: #aaa;
+}
+
+.pause-phase-content {
+	position: absolute;
+	width: 100%;
+	height: 100%;
+    text-align: center;
+    vertical-align: middle;
 }
 
 .phase {
-    height: 37px;
     position: absolute;
-    /*float: left;*/
-    margin-top: 1px;
-    /*text-align: center;*/
-    /*background-color: #bcf;*/
+	height: 37px;
+	vertical-align: middle;
+    user-select: false;
+
     background-color: #fff;
-    /*vertical-align: middle;*/
-    /*line-height: 37px;*/
     border: 1px solid #aaa;
     color: white;
-    user-select: false;
 }
 
-.pause-phase {
-    height: 37px;
-    position: absolute;
-    margin-top: 1px;
-    background-color: #bbb;
-    border: 1px solid #aaa;
-    color: white;
-    user-select: false;
-}
-
-.phase-ml {
-    width: 100%;
-    position: absolute;
-    /*background-color: #67f;*/
-    background-color: #AAC253;
-    /*background-color: #f70;*/
-    padding-right: 25px;
-    user-select: false;
-}
-
-.phase-label {
-    position: absolute;
-    color: #fff;
+.phase-content {
+	position: absolute;
+	width: calc(100% - 30px);
+	height: 100%;
     text-align: center;
-    user-select: false;
     vertical-align: middle;
+}
+
+.phase-throughput-handle {
+	position: absolute;
+	margin-left: calc(100% - 30px);
+	height: 37px;
+	background: #627028;
+	width: 30px;
+	vertical-align: middle;
+	text-align: center;
+}
+
+.phase-content-label {	
+    color: #fff;
+}
+
+.phase-content-throughput {
+	position: absolute;
+	width: 100%;
+    background-color: #AAC253;
+}
+
+.phase-throughput-caret {
+	display: inline-block;
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 7.5px 0 7.5px 13.0px;
+    border-color: transparent transparent transparent #fff;
 }
 
 .program-row {
@@ -61,7 +82,6 @@
     border-left: 1px solid #999;
     /* position: absolute; */
     text-align: center;
-    line-height: 40px;
     /* user-select: false; */
     vertical-align: middle;
 }
@@ -69,54 +89,5 @@
 .program-row-label {
     font-weight: normal;
     height: 40px;
-    line-height: 40px;
     border-right: 1px solid #999;
-}
-
-.phase-throughput-caret {
-    width: 0;
-    height: 0;
-    border-style: solid;
-    border-width: 7.5px 0 7.5px 13.0px;
-    border-color: transparent transparent transparent #007bff;
-}
-
-.phase-controls {
-    display: table;
-    width: 100%;
-    height: 100%;
-    position: absolute;
-    background-color: transparent;
-    user-select: false;
-}
-
-.phase-controls-center {
-    display: table-cell;
-    height: 100%;
-    /*background-color: rgba(200, 200, 255, 0.8);*/
-    background-color: rgba(0, 0, 5, 0.01);
-    /*background-color: transparent;*/
-    /*border: 2px dashed #000;*/
-    /*border: 2px solid #99B142;*/
-    user-select: false;
-}
-
-.phase-controls-center:hover {
-    /*background-color: transparent;*/
-    /*background-color: rgba(250, 250, 100, 0.3);*/
-}
-
-.phase-controls-right {
-    display: table-cell;
-    width: 25px;
-    height: 100%;
-    /*background-color: transparent;*/
-    border: 1px dashed #000;
-    background-color: rgba(255, 255, 255, 0.4);
-    user-select: false;
-}
-
-.phase-controls-right:hover {
-    /*background-color: transparent;*/
-    /*background-color: rgba(250, 250, 100, 0.3);*/
 }
