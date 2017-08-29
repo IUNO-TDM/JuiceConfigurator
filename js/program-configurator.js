@@ -2,7 +2,6 @@
 //   Conversion Utilities
 // ******************************************
 var milliliterPerMillisecond = 0.01;
-var pixelPerMilliliter = 1;
 
 function convertMilliliterToMilliseconds(milliliter) {
 	var milliseconds = parseInt(milliliter) / milliliterPerMillisecond;
@@ -11,17 +10,6 @@ function convertMilliliterToMilliseconds(milliliter) {
 
 function convertMillisecondsToMilliliter(milliseconds) {
 	var milliliter = parseInt(milliseconds) * milliliterPerMillisecond;
-	return milliliter;
-}
-
-function convertMilliliterToPixel(milliliter) {
-	var pixel = parseInt(milliliter) * pixelPerMilliliter;
-	// console.log("milliliter = "+milliliter+" -> pixel = "+pixel+", pixelPerMilliliter = "+pixelPerMilliliter);
-	return pixel;
-}
-
-function convertPixelToMilliliter(pixel) {
-	var milliliter = parseInt(pixel) / pixelPerMilliliter;
 	return milliliter;
 }
 
@@ -163,16 +151,6 @@ function Program() {
 	this.pauseSequence = new Sequence(null);
 	this.pauseSequence.type = 'pause';
 
-	this.toJSON = function() {
-		var json = {};
-		var seq = [];
-		this.sequences.forEach(function(sequence) {
-			seq.push(sequence.toJSON());
-		});
-		json['sequences'] = seq;
-		return json;
-	}
-
 	this.addSequence = function(sequence) {
 		this.sequences.push(sequence);
 		this.updatePauses();
@@ -186,20 +164,39 @@ function Program() {
 	}
 
 	this.getBounds = function() {
-		var bounds = [10000, 0];
+		var bounds = [0, 0];
+		var initial = true;
 		this.sequences.forEach(function(sequence) {
 			sequence.phases.forEach(function(phase) {
-				bounds[0] = Math.min(bounds[0], phase.start);
-				bounds[1] = Math.max(bounds[1], phase.start + phase.milliliter * 100 / phase.throughput);
+				if (initial) {
+					bounds[0] = phase.start;
+					bounds[1] = phase.start + phase.milliliter * 100 / phase.throughput;
+					initial = false;
+				} else {
+					bounds[0] = Math.min(bounds[0], phase.start);
+					bounds[1] = Math.max(bounds[1], phase.start + phase.milliliter * 100 / phase.throughput);
+				}
 			});
 		});
 		return bounds;
+	}
+
+	// moves phases so that the lowest phase starts at 0
+	this.normalize = function() {
+		var bounds = this.getBounds();
+		this.sequences.forEach(function(sequence) {
+			sequence.phases.forEach(function(phase) {
+				phase.start -= bounds[0];
+			});
+		});
+		this.updatePauses();
 	}
 
 	this.updatePauses = function() {
 		this.pauseSequence.clear();
 		var bounds = this.getBounds();
 		var span = bounds[1]-bounds[0];
+		// console.log("SPAN: "+span);
 		if (span > 0) {
 			var pausePhases = [new Phase(bounds[0], bounds[1]-bounds[0], 100)];
 			this.sequences.forEach(function(sequence) {
@@ -244,6 +241,16 @@ function Program() {
 		// 	logMessage += "   Pause start = "+pause.start+", end = "+pause.milliliter+" \n";
 		// });
 		// console.log(logMessage);
+	}
+
+	this.toJSON = function() {
+		var json = {};
+		var seq = [];
+		this.sequences.forEach(function(sequence) {
+			seq.push(sequence.toJSON());
+		});
+		json['sequences'] = seq;
+		return json;
 	}
 }
 
@@ -323,6 +330,7 @@ function ProgramConfigurator(program, id) {
 	this.program = program;
 	this.id = id;
 	this.pauseId = null;
+	this.pixelPerMilliliter = 1;
 	// this.dragObject = null;
 	var contentWidth = 0;
 
@@ -336,7 +344,37 @@ function ProgramConfigurator(program, id) {
 		}
 	}.bind(this);
 
+	this.convertMilliliterToPixel = function(milliliter) {
+		var pixel = parseInt(milliliter) * this.pixelPerMilliliter;
+		return pixel;
+	}
+
+	this.convertPixelToMilliliter = function(pixel) {
+		var milliliter = parseInt(pixel) / this.pixelPerMilliliter;
+		return milliliter;
+	}
+
+	this.getStartOffset = function(start) {
+		var bounds = this.program.getBounds();
+		var startOffset = start - bounds[0];
+		return startOffset;
+	}
+
+	this.updateScale = function() {
+		var ppm = 1;
+		var content = $("#"+id+" .content")[0];
+		var contentWidth = $(content).innerWidth();
+		var bounds = this.program.getBounds();
+		var span = bounds[1]-bounds[0];
+		if (span > 0) {
+			ppm = contentWidth / span;
+		}
+		this.pixelPerMilliliter = ppm;
+		// console.log("pixelPerMilliliter = "+ppm);
+	}
+
 	this.render = function() {
+		console.log("Render!");
 		var htmlProgram = $("#"+id);
 		htmlProgram.html(""); // clear html element content
 		var configurator = this;
@@ -365,13 +403,12 @@ function ProgramConfigurator(program, id) {
 						var offset = $(this).offset();
 						var relX = event.pageX - offset.left;
 						var relY = event.pageY - offset.top;
-						draggingX = event.clientX;
-						draggingY = event.clientY;
 						draggingStartX = event.pageX;
 						draggingStartY = event.pageY;
 						draggingPhase = getPhaseFromHtmlElement(this);
 						draggingPhaseStart = draggingPhase.start;
 						draggingThroughputStart = draggingPhase.throughput;
+						scale = configurator.pixelPerMilliliter;
 						if (relX <= 15) {
 							dragMode = 'left';
 						} else if (relX >= $(this).width() - 30) {
@@ -380,43 +417,35 @@ function ProgramConfigurator(program, id) {
 							dragMode = 'center';
 						}
 					},
-					// stop: function(event, ui) {
-					// 	// $(this).addClass('over');
-					// 	if (!$(event.target).parents(this).size()) {
-					// 		$(this).find('.phase-controls').hide();
-					// 	}
-					// 	// configurator.dragObject = null;
-					// },
+					stop: function(event, ui) {
+						var bounds = configurator.program.getBounds();
+						configurator.program.normalize();
+						bounds = configurator.program.getBounds();
+						configurator.phaseChanged();
+						// configurator.dragObject = null;
+					},
 					drag: function(event, ui) {
 						var remainingInterval = getRemainingInterval(this);
 						var draggingInterval = getDraggingInterval(this);
 						var dX = event.pageX - draggingStartX;
 						var dY = event.pageY - draggingStartY;
-						// var dX = event.clientX - draggingX;
-						// var dY = event.clientY - draggingY;
-						draggingX = event.clientX;
-						draggingY = event.clientY;
 
 						var phase = getPhaseFromHtmlElement(this);
 						if (dragMode == 'center' || dragMode == 'left') { // move phase start
-							// var dX = event.pageX - draggingStartX;
-							var dXMl = convertPixelToMilliliter(dX)
+							var mlOffset = parseInt(dX) / scale;
 
 							// calculate new phase start
-							newStartMl = draggingPhaseStart + dXMl;
+							newStartMl = draggingPhaseStart + mlOffset;
 							newStartMl = Math.round(newStartMl); // we do not want floating point numbers
 							newStartMl = Math.max(draggingInterval[0], newStartMl); // restrict to dragging intervall (no overlap etc.)
 							newStartMl = Math.min(draggingInterval[1], newStartMl); // restrict to dragging intervall (no overlap etc.)
 							ui.helper.start = newStartMl;
 							phase.start = newStartMl;
-							configurator.updateScales();
-							
-							// if scale or origin did change, adjust draggingPhaseStart
-							var diff = newStartMl - phase.start;
-							draggingPhaseStart -= diff;
+							configurator.phaseChanged();
 							
 							// set position of html object
-							var newStartPx = convertMilliliterToPixel(phase.start);
+							var startOffset = configurator.getStartOffset(phase.start) ;
+							var newStartPx = configurator.convertMilliliterToPixel(startOffset);
 							ui.position.left = newStartPx;
 						} else if (dragMode == 'right') { // adjusting throughput
 							// calculate minimum throughput
@@ -431,10 +460,11 @@ function ProgramConfigurator(program, id) {
 							throughput = Math.max(minimumThroughput, throughput);
 
 							phase.throughput = throughput;
-							configurator.updateScales();
+							configurator.phaseChanged();
+							// configurator.updateScales();
 
 							// set position of html object
-							var newStartPx = convertMilliliterToPixel(phase.start);
+							var newStartPx = configurator.convertMilliliterToPixel(phase.start);
 							ui.position.left = newStartPx;
 						}
 					},
@@ -446,12 +476,6 @@ function ProgramConfigurator(program, id) {
 						.data('phase', phase)
 						.dialog('open');
 				});
-
-				// htmlPhase.hover(function() {
-				// 	$(this).find('.phase-controls').show();
-				// }, function() {
-				// 	$(this).find('.phase-controls').hide();
-				// });
 
 				htmlContent.append(htmlPhase);
 			});
@@ -487,28 +511,38 @@ function ProgramConfigurator(program, id) {
 		});
 		htmlProgram.append(footer);
 
-		this.updateScales();
+		this.phaseChanged();
 	};
 
-	this.updateScales = function() {
+	this.phaseChanged = function() {
+		var configurator = this;
 		program.updatePauses();
-		var content = $("#program .content")[0];
-		var contentWidth = $(content).innerWidth();
-		var bounds = this.program.getBounds();
-		var span = bounds[1]-bounds[0];
-		if (span > 0) {
-			pixelPerMilliliter = contentWidth / span;
-			this.program.sequences.forEach(function(sequence) {
-				sequence.phases.forEach(function(phase) {
-					phase.start -= bounds[0];
-					updatePhaseHtmlElement(phase);
-				});
+		this.updateScale();
+		this.program.sequences.forEach(function(sequence) {
+			sequence.phases.forEach(function(phase) {
+				configurator.updatePhaseHtmlElement(phase);
 			});
-		}
+		});
+
+		// var content = $("#program .content")[0];
+		// var contentWidth = $(content).innerWidth();
+		// var bounds = this.program.getBounds();
+		// var span = bounds[1]-bounds[0];
+		// if (span > 0) {
+		// 	pixelPerMilliliter = contentWidth / span;
+		// 	console.log("pixelPerMilliliter = "+pixelPerMilliliter);
+		// 	this.program.sequences.forEach(function(sequence) {
+		// 		sequence.phases.forEach(function(phase) {
+		// 	// 		phase.start -= bounds[0];
+		// 			updatePhaseHtmlElement(phase);
+		// 		});
+		// 	});
+		// }
 		this.renderPauses();
 	}
 
 	this.renderPauses = function() {
+		var configurator = this;
 		var htmlProgram = $("#"+id);
 		var htmlSequence = $("#"+this.program.pauseSequence.id);
 		if (this.program.pauseSequence.phases.length > 0) {
@@ -524,7 +558,7 @@ function ProgramConfigurator(program, id) {
 			var htmlPhase = $("#program-pause-phase").clone();
 			htmlPhase.attr("id", phase.id);
 			htmlContent.append(htmlPhase);
-			updatePhaseHtmlElement(phase);
+			configurator.updatePhaseHtmlElement(phase);
 
 			var label = $("#"+phase.id+" .phase-content-label")[0];
 			var s = convertMilliliterToMilliseconds(phase.milliliter) / 1000;
@@ -615,14 +649,15 @@ function ProgramConfigurator(program, id) {
 
 	var defaultPhaseHeight = 37;
 
-	function updatePhaseHtmlElement(phase) {
+	this.updatePhaseHtmlElement = function(phase) {
 		var htmlElement = $("#"+phase.id)[0];
-		var mlStart = phase.start;
+		var bounds = this.program.getBounds();
+		var mlStart = phase.start - bounds[0];
 		var ml = phase.milliliter;
 		var throughput = phase.throughput;
 		var mlWidth = ml * 100 / throughput;
-		var start = convertMilliliterToPixel(mlStart)+"px";
-		var width = convertMilliliterToPixel(mlWidth)+"px";
+		var start = this.convertMilliliterToPixel(mlStart)+"px";
+		var width = this.convertMilliliterToPixel(mlWidth)+"px";
 		var height = (defaultPhaseHeight * throughput / 100) + "px";
 		var marginTop = (defaultPhaseHeight - parseInt(height)) / 2 + "px";
 		htmlElement.style.left = start;
@@ -661,11 +696,11 @@ function ProgramConfigurator(program, id) {
 
 	// calculates the space between the previous phase and the next phase
 	function getRemainingInterval(phaseDiv) {
-		var interval = [-100, 1000];
+		var interval = [-10000, 10000];
 		for (var i = 0; i < program.sequences.length; i += 1) {
 			var sequence = program.sequences[i];
 			var processingPhase = null;
-			var interval = [-100, 1000];
+			var interval = [-10000, 10000];
 			for (var j = 0; j < sequence.phases.length; j += 1) {
 				var phase = sequence.phases[j];
 				if (phase.id == phaseDiv.id) {
