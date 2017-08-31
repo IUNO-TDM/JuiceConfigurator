@@ -1,7 +1,11 @@
 // ******************************************
 //   Conversion Utilities
 // ******************************************
-var milliliterPerMillisecond = 0.01;
+milliliterPerMillisecond = 0.05;
+minPhaseAmount = 10;
+minTotalAmount = 100;
+maxTotalAmount = 120;
+maxTotalPause = 5000;
 
 function convertMilliliterToMilliseconds(milliliter) {
 	var milliseconds = parseInt(milliliter) / milliliterPerMillisecond;
@@ -86,7 +90,7 @@ function Sequence(ingredientId) {
 		}
 	}
 
-	this.getTotal = function() {
+	this.getTotalAmount = function() {
 		var total = 0;
 		this.phases.forEach(function(phase) {
 			total += phase.milliliter;
@@ -161,6 +165,14 @@ function Program() {
 			return s.ingredientId != sequence.ingredientId;
 		});
 		this.updatePauses();
+	}
+
+	this.getTotalAmount = function() {
+		var total = 0;
+		this.sequences.forEach(function(sequence) {
+			total += sequence.getTotalAmount();
+		});
+		return total;
 	}
 
 	this.getBounds = function() {
@@ -335,11 +347,11 @@ function ProgramConfigurator(program, id) {
 	var contentWidth = 0;
 
 	window.onresize = function() {
-		// console.log("New width: "+window.innerWidth);
+		console.log("New width: "+window.innerWidth);
 		var content = $("#"+id+" .content")[0];
 		var newContentWidth = $(content).innerWidth();
 		if (newContentWidth != contentWidth) {
-			this.updateScales();
+			this.phaseChanged();
 			contentWidth = newContentWidth;
 		}
 	}.bind(this);
@@ -374,7 +386,6 @@ function ProgramConfigurator(program, id) {
 	}
 
 	this.render = function() {
-		console.log("Render!");
 		var htmlProgram = $("#"+id);
 		htmlProgram.html(""); // clear html element content
 		var configurator = this;
@@ -480,7 +491,7 @@ function ProgramConfigurator(program, id) {
 				htmlContent.append(htmlPhase);
 			});
 
-			var total = sequence.getTotal();
+			var total = sequence.getTotalAmount();
 			var htmlTotal = htmlSequence.find('.program-row-total');
 			htmlTotal = htmlTotal.find('.total-label');
 			htmlTotal.html(total + " ml");
@@ -488,7 +499,7 @@ function ProgramConfigurator(program, id) {
 			var htmlAmountHref = htmlSequence.find('.change-amount');
 			htmlAmountHref.click(function(event) {
 				event.preventDefault();
-				$( "#changeml").val(sequence.getTotal());
+				$( "#changeml").val(sequence.getTotalAmount());
 				$( "#dialog-change-amount" )
 					.data('configurator', configurator)
 					.data('sequence', sequence)
@@ -501,7 +512,6 @@ function ProgramConfigurator(program, id) {
 		htmlProgram.append(htmlSequence);
 		var htmlLabel = htmlSequence.find('.ingredient-label');
 		htmlLabel.html("Pausen")
-
 		var footer = $("#program-footer").clone();
 		footer.attr("id", this.id + "-footer");
 		var htmlAddIngredientHref = footer.find('.add-ingredient');
@@ -509,6 +519,24 @@ function ProgramConfigurator(program, id) {
 			event.preventDefault();
 			openAddIngredientDialog(configurator);
 		});
+
+		// update total amount text
+		var totalAmount = this.program.getTotalAmount();
+		var totalLabel = footer.find(".total-label");
+		footer.find(".error-minimum-total").addClass('hidden');
+		footer.find(".error-maximum-total").addClass('hidden');
+		// var totalError = footer.find(".total-error");
+		totalLabel.html(totalAmount + " ml");
+		if (totalAmount < minTotalAmount) {
+			totalLabel.addClass("error");
+			footer.find(".error-minimum-total").removeClass('hidden');
+		} else if (totalAmount > maxTotalAmount) {
+			totalLabel.addClass("error");
+			footer.find(".error-maximum-total").removeClass('hidden');
+		} else {
+			totalLabel.removeClass("error");
+		}
+
 		htmlProgram.append(footer);
 
 		this.phaseChanged();
@@ -567,9 +595,20 @@ function ProgramConfigurator(program, id) {
 		});
 
 		var htmlTotal = htmlSequence.find('.program-row-total .label');
-		var total = this.program.pauseSequence.getTotal();
-		var seconds = convertMilliliterToMilliseconds(total) / 1000;
+		var totalAmount = this.program.pauseSequence.getTotalAmount();
+		var milliseconds = convertMilliliterToMilliseconds(totalAmount);
+		var seconds = milliseconds / 1000;
 		htmlTotal.html(seconds + " s");
+
+		var footer = $( "#"+configurator.id + "-footer");
+		var errorText = footer.find(".error-maximum-pause");
+		if (milliseconds > maxTotalPause) {
+			htmlTotal.addClass("error");
+			errorText.removeClass("hidden");
+		} else {
+			htmlTotal.removeClass("error");
+			errorText.addClass("hidden");
+		}
 	}
 
 	this.changeAmount = function(sequence, amount) {
@@ -740,6 +779,9 @@ $(function() {
 		width: 400,
 		modal: true,
 		buttons: {
+			"Abbrechen": function() {
+				$(this).dialog('close');
+			},
 			"Zutat entfernen": function() {
 				var configurator = $(this).data('configurator');
 				var sequence = $(this).data('sequence');
@@ -747,15 +789,28 @@ $(function() {
 				$(this).dialog('close');
 			},
 			"Menge ändern": function() {
-				var configurator = $(this).data('configurator');
-				var sequence = $(this).data('sequence');
+				var errorMsg = $("#dialog-change-amount .alert");
 				var amount = parseInt(changeml.value);
-				configurator.changeAmount(sequence, amount);
-				$(this).dialog('close');
+				if (amount < minPhaseAmount) {
+					errorMsg.removeClass("hidden");
+				} else if (amount > maxTotalAmount) {
+					errorMsg.removeClass("hidden");
+				} else {
+					errorMsg.addClass("hidden");
+					var configurator = $(this).data('configurator');
+					var sequence = $(this).data('sequence');
+					configurator.changeAmount(sequence, amount);
+					$(this).dialog('close');
+				}
 			},
-			"Abbrechen": function() {
-				$(this).dialog('close');
-			}
+		},
+		open: function() {
+			errorMsg = $("#dialog-change-amount .alert").addClass("hidden");
+			$("#dialog-change-amount").keypress(function(e) {
+				if (e.keyCode == $.ui.keyCode.ENTER) {
+					$(this).parent().find("button:eq(3)").trigger("click");
+				}
+			});
 		}
 	});
 
@@ -772,6 +827,9 @@ $(function() {
 			$('.ui-widget-overlay').removeClass('custom-overlay');
 		},
 		buttons: {
+			"Abbrechen": function() {
+				$(this).dialog('close');
+			},
 			"Verschmelzen": function() {
 				var configurator = $(this).data('configurator');
 				var phase = $(this).data('phase');
@@ -779,15 +837,26 @@ $(function() {
 				$(this).dialog('close');
 			},
 			"Phase teilen": function() {
-				var configurator = $(this).data('configurator');
+				errorMsg = $("#dialog-phase .alert").addClass("hidden");
 				var phase = $(this).data('phase');
 				var amount = parseInt(splitml.value);
-				configurator.splitPhase(phase, amount)
-				$(this).dialog('close');
+				if (amount < minPhaseAmount || amount > phase.milliliter-minPhaseAmount) {
+					errorMsg.removeClass("hidden");
+					errorMsg.html('<strong>Fehler!</strong> Der Betrag muss zwischen '+minPhaseAmount+" ml und "+(phase.milliliter-minPhaseAmount)+" ml liegen.");
+				} else {
+					var configurator = $(this).data('configurator');
+					configurator.splitPhase(phase, amount)
+					$(this).dialog('close');
+				}
 			},
-			"Abbrechen": function() {
-				$(this).dialog('close');
-			}
+		},
+		open: function() {
+			errorMsg = $("#dialog-phase .alert").addClass("hidden");
+			$("#dialog-phase").keypress(function(e) {
+				if (e.keyCode == $.ui.keyCode.ENTER) {
+					$(this).parent().find("button:eq(3)").trigger("click");
+				}
+			});
 		}
 	});
 
