@@ -413,6 +413,16 @@ function ProgramConfigurator(program, id) {
 		var htmlProgram = $("#"+id);
 		htmlProgram.html(""); // clear html element content
 		var configurator = this;
+		if (this.program.sequences.length == 0) {
+			var emptyProgramPlaceholder = $("#program-empty-placeholder").clone();
+			var htmlAddIngredientHref = emptyProgramPlaceholder.find('.add-ingredient');
+			htmlAddIngredientHref.click(function(event) {
+				event.preventDefault();
+				openAddIngredientDialog(configurator);
+			});
+			htmlProgram.append(emptyProgramPlaceholder);
+			return;
+		}
 		// add sequences
 		this.program.sequences.forEach(function(sequence) {
 			var htmlSequence = $("#program-sequence").clone();
