@@ -1,7 +1,7 @@
 // ******************************************
 //   Conversion Utilities
 // ******************************************
-milliliterPerMillisecond = 0.05;
+milliliterPerMillisecond = 0.01;
 minPhaseAmount = 10;
 minTotalAmount = 100;
 maxTotalAmount = 120;
@@ -422,6 +422,15 @@ function ProgramConfigurator(program, id) {
 			var ingredient = getIngredientById(sequence.ingredientId)
 			htmlLabel.html(ingredient.name)
 
+			var deleteIngredientHRef = htmlSequence.find(".ingredient-delete");
+			deleteIngredientHRef.click(function(event) {
+				event.preventDefault();
+				$( "#dialog-delete-ingredient" )
+					.data('configurator', configurator)
+					.data('sequence', sequence)
+					.dialog('open');
+			});
+
 			var htmlContent = htmlSequence.find('.content');
 			htmlContent.html("");
 			
@@ -521,15 +530,15 @@ function ProgramConfigurator(program, id) {
 			htmlTotal = htmlTotal.find('.total-label');
 			htmlTotal.html(total + " ml");
 
-			var htmlAmountHref = htmlSequence.find('.change-amount');
-			htmlAmountHref.click(function(event) {
-				event.preventDefault();
-				$( "#changeml").val(sequence.getTotalAmount());
-				$( "#dialog-change-amount" )
-					.data('configurator', configurator)
-					.data('sequence', sequence)
-					.dialog('open');
-			});
+			// var htmlAmountHref = htmlSequence.find('.change-amount');
+			// htmlAmountHref.click(function(event) {
+			// 	event.preventDefault();
+			// 	$( "#changeml").val(sequence.getTotalAmount());
+			// 	$( "#dialog-change-amount" )
+			// 		.data('configurator', configurator)
+			// 		.data('sequence', sequence)
+			// 		.dialog('open');
+			// });
 		});
 
 		var htmlSequence = $("#program-pause").clone();

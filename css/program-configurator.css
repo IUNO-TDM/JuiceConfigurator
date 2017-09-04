@@ -2,7 +2,8 @@
     position: relative;
     top: 50%;
     transform: translateY(-50%);
-    /* vendor prefixes omitted due to brevity */
+    -webkit-transform: translateY(-50%);
+    -ms-transform: translateY(-50%);
 }
 
 .pause-phase {
@@ -99,6 +100,21 @@
     font-weight: normal;
     height: 40px;
     border-right: 1px solid #999;
+    padding-left: 2px;
+}
+
+.program-pause-label {
+    font-weight: normal;
+    height: 40px;
+    border-right: 1px solid #999;
+    padding-left: 26px;
+}
+
+.program-footer-label {
+    font-weight: normal;
+    height: 40px;
+    border-right: 1px solid #999;
+    padding-left: 26px;
 }
 
 .footer {
