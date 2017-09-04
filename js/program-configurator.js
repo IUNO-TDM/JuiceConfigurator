@@ -75,6 +75,30 @@ function Sequence(ingredientId) {
 		this.phases.push(phase);
 	}
 
+	this.setPhaseAmount = function(phase, milliliter) {
+		var offset = (milliliter - phase.milliliter) * 100 / phase.throughput;
+		console.log("Offset = "+offset);
+		phase.milliliter = milliliter;
+
+		// phase.milliliter -= milliliter;
+		// var newPhaseStart = phase.start + phase.milliliter * 100 / phase.throughput;
+		// var newPhase = new Phase(newPhaseStart, milliliter, phase.throughput);
+		// newPhase.sequence = this;
+		// shift next phases by offset
+		var shift = false;
+		for (var i = 0; i < this.phases.length; i += 1) {
+			// console.log("i = "+i);
+			var p = this.phases[i];
+			if (p == phase) {
+				// console.log("this is the phase");
+				shift = true;
+			} else if (shift) {
+				// console.log("shifting the phase from "+phase.);
+				p.start += offset;
+			}
+		}
+	}
+
 	this.splitPhase = function(phase, milliliter) {
 		phase.milliliter -= milliliter;
 		var newPhaseStart = phase.start + phase.milliliter * 100 / phase.throughput;
@@ -151,7 +175,6 @@ Recipe.fromJSON = function(json) {
 }
 
 function Program() {
-	this.milliliterPerMillisecond = milliliterPerMillisecond;
 	this.sequences = [];
 	this.pauseSequence = new Sequence(null);
 	this.pauseSequence.type = 'pause';
@@ -258,7 +281,6 @@ function Program() {
 
 	this.toJSON = function() {
 		var json = {};
-		json['milliliter-per-millisecond'] = this.milliliterPerMillisecond;
 		var seq = [];
 		this.sequences.forEach(function(sequence) {
 			seq.push(sequence.toJSON());
@@ -270,7 +292,6 @@ function Program() {
 
 Program.fromJSON = function(json) {
 	var program = new Program();
-	program.milliliterPerMillisecond = json['milliliter-per-millisecond'];
 	var jsonSequences = json['sequences'];
 	jsonSequences.forEach(function(jsonSequence) {
 		var s = Sequence.fromJSON(jsonSequence);
@@ -485,6 +506,7 @@ function ProgramConfigurator(program, id) {
 				}).css("position", "absolute");
 
 				htmlPhase.click(function(event) {
+					$( "#splitml").val(phase.milliliter);
 					$( "#dialog-phase" )
 						.data('configurator', configurator)
 						.data('phase', phase)
@@ -651,6 +673,12 @@ function ProgramConfigurator(program, id) {
 		this.render();
 	}
 
+	this.setPhaseAmount = function(phase, amount) {
+		var sequence = phase.sequence;
+		sequence.setPhaseAmount(phase, amount);
+		this.render();
+	}
+
 	this.addIngredient = function(ingredientId, amount) {
 		if (amount > 0) {
 			var sequence = new Sequence(ingredientId);
@@ -672,21 +700,31 @@ function ProgramConfigurator(program, id) {
 	this.deletePhase = function(phase) {
 		console.log("Should delete phase id "+phase.id);
 		var sequence = phase.sequence;
-		var mlDeleted = phase.milliliter;
-		if (sequence.phases.length > 1) {
-			var newPhases = [];
-			for (var i = 0; i < sequence.phases.length; i += 1) {
-				var p = sequence.phases[i];
-				if (p != phase) {
-					newPhases.push(p);
-				}
+		var newPhases = [];
+		for (var i = 0; i < sequence.phases.length; i += 1) {
+			var p = sequence.phases[i];
+			if (p != phase) {
+				newPhases.push(p);
 			}
-			newPhases[newPhases.length-1].milliliter += mlDeleted;
-			sequence.phases = newPhases;
-			this.render();
-		} else {
-			// error
 		}
+		sequence.phases = newPhases;
+		this.render();
+
+		// var mlDeleted = phase.milliliter;
+		// if (sequence.phases.length > 1) {
+		// 	var newPhases = [];
+		// 	for (var i = 0; i < sequence.phases.length; i += 1) {
+		// 		var p = sequence.phases[i];
+		// 		if (p != phase) {
+		// 			newPhases.push(p);
+		// 		}
+		// 	}
+		// 	newPhases[newPhases.length-1].milliliter += mlDeleted;
+		// 	sequence.phases = newPhases;
+		// 	this.render();
+		// } else {
+		// 	// error
+		// }
 	}
 
 	var defaultPhaseHeight = 37;
@@ -809,11 +847,11 @@ $(function() {
 		},
 		open: function() {
 			errorMsg = $("#dialog-change-amount .alert").addClass("hidden");
-			$("#dialog-change-amount").keypress(function(e) {
-				if (e.keyCode == $.ui.keyCode.ENTER) {
-					$(this).parent().find("button:eq(3)").trigger("click");
-				}
-			});
+		}
+	});
+	$("#dialog-change-amount").keypress(function(e) {
+		if (e.keyCode == $.ui.keyCode.ENTER) {
+			$(this).parent().find("button:eq(3)").trigger("click");
 		}
 	});
 
@@ -833,13 +871,13 @@ $(function() {
 			"Abbrechen": function() {
 				$(this).dialog('close');
 			},
-			"Verschmelzen": function() {
+			"Löschen": function() {
 				var configurator = $(this).data('configurator');
 				var phase = $(this).data('phase');
 				configurator.deletePhase(phase)
 				$(this).dialog('close');
 			},
-			"Phase teilen": function() {
+			"Abtrennen": function() {
 				errorMsg = $("#dialog-phase .alert").addClass("hidden");
 				var phase = $(this).data('phase');
 				var amount = parseInt(splitml.value);
@@ -852,16 +890,30 @@ $(function() {
 					$(this).dialog('close');
 				}
 			},
+			"Menge ändern": function() {
+				errorMsg = $("#dialog-phase .alert").addClass("hidden");
+				var phase = $(this).data('phase');
+				var amount = parseInt(splitml.value);
+				if (amount < minPhaseAmount) {
+					errorMsg.removeClass("hidden");
+					errorMsg.html('<strong>Fehler!</strong> Die Mindestmenge einer Phase beträgt '+minPhaseAmount+" ml.");
+				} else {
+					var configurator = $(this).data('configurator');
+					configurator.setPhaseAmount(phase, amount)
+					$(this).dialog('close');
+				}
+			}
 		},
 		open: function() {
 			errorMsg = $("#dialog-phase .alert").addClass("hidden");
-			$("#dialog-phase").keypress(function(e) {
-				if (e.keyCode == $.ui.keyCode.ENTER) {
-					$(this).parent().find("button:eq(3)").trigger("click");
-				}
-			});
 		}
 	});
+	$("#dialog-phase").keypress(function(e) {
+		if (e.keyCode == $.ui.keyCode.ENTER) {
+			$(this).parent().find("button:eq(4)").trigger("click");
+		}
+	});
+
 
 	// $( ".phase" ).hover(function() {
 	// 	if (dragObject == null) {
