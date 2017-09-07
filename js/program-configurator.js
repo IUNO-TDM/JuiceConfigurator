@@ -175,6 +175,7 @@ Recipe.fromJSON = function(json) {
 }
 
 function Program() {
+	this.milliliterPerMillisecond = milliliterPerMillisecond;
 	this.sequences = [];
 	this.pauseSequence = new Sequence(null);
 	this.pauseSequence.type = 'pause';
@@ -281,6 +282,7 @@ function Program() {
 
 	this.toJSON = function() {
 		var json = {};
+		json['milliliter-per-millisecond'] = this.milliliterPerMillisecond;
 		var seq = [];
 		this.sequences.forEach(function(sequence) {
 			seq.push(sequence.toJSON());
@@ -292,6 +294,7 @@ function Program() {
 
 Program.fromJSON = function(json) {
 	var program = new Program();
+	program.milliliterPerMillisecond = json['milliliter-per-millisecond'];
 	var jsonSequences = json['sequences'];
 	jsonSequences.forEach(function(jsonSequence) {
 		var s = Sequence.fromJSON(jsonSequence);
