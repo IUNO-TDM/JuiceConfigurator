@@ -540,7 +540,7 @@ function ProgramConfigurator(program, id) {
 
 				htmlPhase.click(function(event) {
 					if (!dragging) {
-						$( "#splitml").val(phase.milliliter);
+						$( "#dialogPhaseMl").val(phase.milliliter);
 						$( "#dialog-phase" )
 							.data('configurator', configurator)
 							.data('phase', phase)
@@ -555,16 +555,6 @@ function ProgramConfigurator(program, id) {
 			var htmlTotal = htmlSequence.find('.program-row-total');
 			htmlTotal = htmlTotal.find('.total-label');
 			htmlTotal.html(total + " ml");
-
-			// var htmlAmountHref = htmlSequence.find('.change-amount');
-			// htmlAmountHref.click(function(event) {
-			// 	event.preventDefault();
-			// 	$( "#changeml").val(sequence.getTotalAmount());
-			// 	$( "#dialog-change-amount" )
-			// 		.data('configurator', configurator)
-			// 		.data('sequence', sequence)
-			// 		.dialog('open');
-			// });
 		});
 
 		var htmlSequence = $("#program-pause").clone();
@@ -848,48 +838,6 @@ function ProgramConfigurator(program, id) {
  * Dialogs
  ************************************************************/
 $(function() {
-	$( "#dialog-change-amount" ).dialog({
-		autoOpen: false,
-		resizable: false,
-		height: "auto",
-		width: 400,
-		modal: true,
-		buttons: {
-			"Abbrechen": function() {
-				$(this).dialog('close');
-			},
-			"Zutat entfernen": function() {
-				var configurator = $(this).data('configurator');
-				var sequence = $(this).data('sequence');
-				configurator.removeSequence(sequence);
-				$(this).dialog('close');
-			},
-			"Menge ändern": function() {
-				var errorMsg = $("#dialog-change-amount .alert");
-				var amount = parseInt(changeml.value);
-				if (amount < minPhaseAmount) {
-					errorMsg.removeClass("hidden");
-				} else if (amount > maxTotalAmount) {
-					errorMsg.removeClass("hidden");
-				} else {
-					errorMsg.addClass("hidden");
-					var configurator = $(this).data('configurator');
-					var sequence = $(this).data('sequence');
-					configurator.changeAmount(sequence, amount);
-					$(this).dialog('close');
-				}
-			},
-		},
-		open: function() {
-			errorMsg = $("#dialog-change-amount .alert").addClass("hidden");
-		}
-	});
-	$("#dialog-change-amount").keypress(function(e) {
-		if (e.keyCode == $.ui.keyCode.ENTER) {
-			$(this).parent().find("button:eq(3)").trigger("click");
-		}
-	});
-
 	$( "#dialog-phase" ).dialog({
 		autoOpen: false,
 		resizable: false,
@@ -915,7 +863,7 @@ $(function() {
 			"Abtrennen": function() {
 				errorMsg = $("#dialog-phase .alert").addClass("hidden");
 				var phase = $(this).data('phase');
-				var amount = parseInt(splitml.value);
+				var amount = parseInt(dialogPhaseMl.value);
 				if (amount < minPhaseAmount || amount > phase.milliliter-minPhaseAmount) {
 					errorMsg.removeClass("hidden");
 					errorMsg.html('<strong>Fehler!</strong> Der Betrag muss zwischen '+minPhaseAmount+" ml und "+(phase.milliliter-minPhaseAmount)+" ml liegen.");
@@ -928,7 +876,7 @@ $(function() {
 			"Menge ändern": function() {
 				errorMsg = $("#dialog-phase .alert").addClass("hidden");
 				var phase = $(this).data('phase');
-				var amount = parseInt(splitml.value);
+				var amount = parseInt(dialogPhaseMl.value);
 				if (amount < minPhaseAmount) {
 					errorMsg.removeClass("hidden");
 					errorMsg.html('<strong>Fehler!</strong> Die Mindestmenge einer Phase beträgt '+minPhaseAmount+" ml.");
@@ -940,6 +888,7 @@ $(function() {
 			}
 		},
 		open: function() {
+			$(dialogPhaseMl).select();
 			errorMsg = $("#dialog-phase .alert").addClass("hidden");
 		}
 	});
