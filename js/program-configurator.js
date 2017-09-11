@@ -451,12 +451,24 @@ function ProgramConfigurator(program, id) {
 				var htmlPhase = $("#program-phase").clone();
 				htmlPhase.attr("id", phase.id);
 
+				var htmlPhaseContent = htmlPhase.find(".phase-content");
+				htmlPhaseContent.mousedown(function(event, ui) {
+					dragging = false;
+					dragMode = 'phase';
+				});
+
+				var htmlPhaseThroughputHandle = htmlPhase.find(".phase-throughput-handle");
+				htmlPhaseThroughputHandle.mousedown(function(event, ui) {
+					dragging = false;
+					dragMode = 'throughput';
+				});
+
 				htmlPhase.draggable({
 					axis: "x",
 					cursor: 'move',
 					delay: 150,
 					start: function(event, ui) {
-						// configurator.dragObject = this;
+						dragging = true;
 						var offset = $(this).offset();
 						var relX = event.pageX - offset.left;
 						var relY = event.pageY - offset.top;
@@ -466,20 +478,12 @@ function ProgramConfigurator(program, id) {
 						draggingPhaseStart = draggingPhase.start;
 						draggingThroughputStart = draggingPhase.throughput;
 						scale = configurator.pixelPerMilliliter;
-						if (relX <= 15) {
-							dragMode = 'left';
-						} else if (relX >= $(this).width() - 30) {
-							dragMode = 'right';
-						} else {
-							dragMode = 'center';
-						}
 					},
 					stop: function(event, ui) {
 						var bounds = configurator.program.getBounds();
 						configurator.program.normalize();
 						bounds = configurator.program.getBounds();
 						configurator.phaseChanged();
-						// configurator.dragObject = null;
 					},
 					drag: function(event, ui) {
 						var remainingInterval = getRemainingInterval(this);
@@ -488,7 +492,7 @@ function ProgramConfigurator(program, id) {
 						var dY = event.pageY - draggingStartY;
 
 						var phase = getPhaseFromHtmlElement(this);
-						if (dragMode == 'center' || dragMode == 'left') { // move phase start
+						if (dragMode == 'phase') { // move phase start
 							var mlOffset = parseInt(dX) / scale;
 
 							// calculate new phase start
@@ -504,7 +508,7 @@ function ProgramConfigurator(program, id) {
 							var startOffset = configurator.getStartOffset(phase.start) ;
 							var newStartPx = configurator.convertMilliliterToPixel(startOffset);
 							ui.position.left = newStartPx;
-						} else if (dragMode == 'right') { // adjusting throughput
+						} else if (dragMode == 'throughput') { // adjusting throughput
 							// calculate minimum throughput
 							var remainingIntervalSize = remainingInterval[1] - phase.start;
 							var minimumThroughput = phase.milliliter * 100 / remainingIntervalSize;
@@ -528,11 +532,13 @@ function ProgramConfigurator(program, id) {
 				}).css("position", "absolute");
 
 				htmlPhase.click(function(event) {
-					$( "#splitml").val(phase.milliliter);
-					$( "#dialog-phase" )
-						.data('configurator', configurator)
-						.data('phase', phase)
-						.dialog('open');
+					if (!dragging) {
+						$( "#splitml").val(phase.milliliter);
+						$( "#dialog-phase" )
+							.data('configurator', configurator)
+							.data('phase', phase)
+							.dialog('open');
+					}
 				});
 
 				htmlContent.append(htmlPhase);
