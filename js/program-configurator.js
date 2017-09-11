@@ -516,10 +516,17 @@ function ProgramConfigurator(program, id) {
 							minimumThroughput = Math.floor(minimumThroughput); //we do not want floating point numbers
 
 							// calculate throughput
-							var throughput = draggingThroughputStart - dX;
-							throughput = Math.min(100, throughput);
-							throughput = Math.max(minimumThroughput, throughput);
-
+							var throughput = draggingThroughputStart;
+							var mlOffset = phase.milliliter * 100 / draggingThroughputStart - phase.milliliter + parseInt(dX) / scale;
+							if (mlOffset > 0) {
+								var tpd = phase.milliliter * 100 / (phase.milliliter + mlOffset) - draggingThroughputStart;
+								tpd = Math.round(tpd);
+								throughput = draggingThroughputStart + tpd;
+								throughput = Math.min(100, throughput);
+								throughput = Math.max(minimumThroughput, throughput);
+							} else {
+								throughput = 100;
+							}
 							phase.throughput = throughput;
 							configurator.phaseChanged();
 							// configurator.updateScales();
